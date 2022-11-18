@@ -1,0 +1,7 @@
+['HQ60B23011']
+{
+ "HQ60B23011": {
+  " com.qualcomm.qti.PresenceApp_APP_CRASH": 1,
+  " com.android.wallpaper_APP_CRASH": 2
+ }
+}

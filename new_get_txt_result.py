@@ -195,8 +195,12 @@ class TaskResult():
 
             except KeyError as e:
                 print('task {0} {1} have no result!'.format(self.task_id,device_id))
+        try:
+            due_tams_result_to_time_merge_dict(self)
+        except KeyError as e:
+            pass
 
-        due_tams_result_to_time_merge_dict(self)
+
 
         with open(os.path.join(now_path, 'result_path', '{}_result.txt'.format(self.task_id)), 'a+') as f:
             f.write('--'*20 +"↓↓↓测试设备id如下↓↓↓" + '--'*20 + '\n')

@@ -1,11 +1,11 @@
 #coding=gbk
 # [project]:
-# [timeout]: 300 (µ¥Î»s)
-# [test_case_name]:»ñÈ¡ÈÎÎñ½á¹û
-# [test_case_id]:»ñÈ¡ÈÎÎñ½á¹û
+# [timeout]: 300 (å•ä½s)
+# [test_case_name]:è·å–ä»»åŠ¡ç»“æœ
+# [test_case_id]:è·å–ä»»åŠ¡ç»“æœ
 # [test_case_author]:lichanghe
 # [test_case_description]:
-# [test_case_time]:2022/10/31 ÏÂÎç1:55
+# [test_case_time]:2022/10/31 ä¸‹åˆ1:55
 # -*- coding: utf-8 -*-
 import os
 import subprocess
@@ -27,15 +27,16 @@ except ModuleNotFoundError as err_msg:
 import urllib.request
 
 
-max_download_num = 10#ÊäÈëÏÂÔØlogcatÎÄ¼şµÄ×î´ó¸öÊı
+max_download_num = 10#è¾“å…¥ä¸‹è½½logcatæ–‡ä»¶çš„æœ€å¤§ä¸ªæ•°
 now_path = os.getcwd()
-task_id = input('ÇëÊäÈëÈÎÎñid£º')
+task_id = input('è¯·è¾“å…¥ä»»åŠ¡idï¼š')
 host = "http://tams.thundersoft.com/"
 download_host = 'http://tams.thundersoft.com/api/storage/download/'
 all_device_id_list = set()
 merge_dict = {}
 case_merge_dict = {}
 download_merge_dict = {}
+time_merge_dict = {}
 
 with open('precise_package_blacklist.txt', 'r') as f:
     black_package_name = f.read()
@@ -120,6 +121,23 @@ def  due_tams_result_to_case_dict(self,device_id):
 
             self.case_dict_dict[f'{device_id}'] = due_case_dict
 
+def  due_tams_result_to_time_merge_dict(self):
+    time_result = self.all_device_data['summary']
+
+    total_result = time_result['total']
+    for device_id in all_device_id_list:
+        if device_id in time_result.keys():
+            if device_id in time_merge_dict.keys():
+                time_merge_dict[device_id] += time_result[device_id]['test_time']
+            else:
+                time_merge_dict[device_id] = time_result[device_id]['test_time']
+    if 'total' in time_merge_dict.keys():
+        time_merge_dict['total'] += total_result['test_time']
+    else:
+        time_merge_dict['total'] = total_result['test_time']
+
+    # for device_id in time_merge_dict.keys():
+    #     time_merge_dict[device_id] = time_merge_dict[device_id] / 3600
 
 
 class TaskResult():
@@ -132,6 +150,7 @@ class TaskResult():
         self.case_dict = {}
         self.case_dict_dict = {}
         self.download_dict = {}
+        self.all_device_data = {}
 
     def get_tams_device_id(self):
         api = 'api/result/get/{}'.format(self.task_id)
@@ -141,6 +160,7 @@ class TaskResult():
         # with open('{}_device_info.txt'.format(task_id),'a+') as f:
         #     f.write(all_device_data)
         all_device_data = json.loads(all_device_data)
+        self.all_device_data = all_device_data
         for i in range(len(all_device_data['config']['dut_list'])):
             device_name = all_device_data['config']['dut_list'][i]['DUT']
             self.device_id_list.append(device_name)
@@ -149,7 +169,7 @@ class TaskResult():
 
     def get_tams_result(self):
         self.get_tams_device_id()
-        print('¿ªÊ¼»ñÈ¡{}µÄÊı¾İ:'.format(self.task_id))
+        print('å¼€å§‹è·å–{}çš„æ•°æ®:'.format(self.task_id))
 
         for device_id in self.device_id_list:
             try:
@@ -160,11 +180,12 @@ class TaskResult():
                 all_device_result = all_device_result.text
                 all_device_result = json.loads(all_device_result)
                 self.all_device_result = all_device_result
-                #¶ÔÊı¾İ½øĞĞ´¦Àí
+                #å¯¹æ•°æ®è¿›è¡Œå¤„ç†
                 remove_result_from_blacklist(self)
                 due_tams_result_to_dict(self,device_id)
                 due_tams_result_to_download_dict(self)
                 due_tams_result_to_case_dict(self,device_id)
+
                 for download_id in self.download_dict.keys():
                     if download_id in download_merge_dict.keys():
                         for logcat in self.download_dict[download_id].keys():
@@ -174,12 +195,18 @@ class TaskResult():
 
             except KeyError as e:
                 print('task {0} {1} have no result!'.format(self.task_id,device_id))
+
+        due_tams_result_to_time_merge_dict(self)
+
         with open(os.path.join(now_path, 'result_path', '{}_result.txt'.format(self.task_id)), 'a+') as f:
+            f.write('--'*20 +"â†“â†“â†“æµ‹è¯•è®¾å¤‡idå¦‚ä¸‹â†“â†“â†“" + '--'*20 + '\n')
 
             f.write(str(self.device_id_list) + '\n')
+            f.write('\n')
+            f.write('--'*20+'â†“â†“â†“ä»»åŠ¡ç»“æœå¦‚ä¸‹â†“â†“â†“' + '--'*20 + '\n')
             json.dump(self.result_dict_dict, f, indent=True)
             f.write('\n')
-            f.write('--'*20 + '¡ı¡ı¡ıbugËùÔÚµÄcase·Ö²¼ÈçÏÂ¡ı¡ı¡ı' + '--'*20)
+            f.write('--'*20 + 'â†“â†“â†“bugæ‰€åœ¨çš„caseåˆ†å¸ƒå¦‚ä¸‹â†“â†“â†“' + '--'*20)
             f.write('\n')
             json.dump(self.case_dict_dict, f, indent=True)
         # with open('{}_download_result.txt'.format(self.task_id), 'a+') as f:
@@ -187,7 +214,7 @@ class TaskResult():
 
     def merge(self):
         self.get_tams_result()
-        '''ºÏ²¢bugÊıÄ¿½á¹û'''
+        '''åˆå¹¶bugæ•°ç›®ç»“æœ'''
         for id in self.result_dict_dict.keys():
             if id in merge_dict.keys():
                 for package in self.result_dict_dict[id]:
@@ -197,7 +224,7 @@ class TaskResult():
                         merge_dict[id][package] = self.result_dict_dict[id][package]
             else:
                 merge_dict[id] = self.result_dict_dict[id]
-        '''ºÏ²¢caseÊıÄ¿½á¹û'''
+        '''åˆå¹¶caseæ•°ç›®ç»“æœ'''
         for id in self.case_dict_dict.keys():
             if id in case_merge_dict.keys():
                 for package in self.case_dict_dict[id]:
@@ -208,7 +235,7 @@ class TaskResult():
             else:
                 case_merge_dict[id] = self.case_dict_dict[id]
 
-        '''ºÏ²¢ÏÂÔØpath'''
+        '''åˆå¹¶ä¸‹è½½path'''
         for download_id in self.download_dict.keys():
             if download_id in download_merge_dict.keys():
                 for logcat in self.download_dict[download_id].keys():
@@ -218,7 +245,7 @@ class TaskResult():
 
 
 def download_log(task_id):
-    print(f'¿ªÊ¼ÏÂÔØÈÎÎñ{task_id}µÄÎÄ¼ş')
+    print(f'å¼€å§‹ä¸‹è½½ä»»åŠ¡{task_id}çš„æ–‡ä»¶')
     for key in download_merge_dict.keys():
         device_id = key.split('_')[0]
         package_name = key.split('_')[1].strip()
@@ -236,7 +263,7 @@ def download_log(task_id):
                 if not os.path.exists(download_local_path):
                     os.makedirs(download_local_path)
                 download_path = download_merge_dict[key][key2]
-                print(f'¿ªÊ¼ÏÂÔØ{device_id}_{package_name}_{type}')
+                print(f'å¼€å§‹ä¸‹è½½{device_id}_{package_name}_{type}')
 
                 urllib.request.urlretrieve(download_host + download_path, os.path.join(download_local_path, file_name))
                 count_num += 1
@@ -269,22 +296,27 @@ if __name__ == '__main__':
             else:
                 pass
         download_log(f'{new_task_id[0]}_merge')
-        print('ÈÎÎñ½á¹ûºÏ²¢Íê±Ï!')
+        print('ä»»åŠ¡ç»“æœåˆå¹¶å®Œæ¯•!')
+        for device_id in time_merge_dict.keys():
+            time_merge_dict[device_id] = f'{time_merge_dict[device_id] / 3600}h'
         with open(os.path.join(now_path,'result_path',f'{new_task_id[0]}_merge.txt'), 'a+') as f:
             # f.write(str(merge_dict))
+            f.write('--' * 20 + "â†“â†“â†“æµ‹è¯•è®¾å¤‡idå¦‚ä¸‹â†“â†“â†“" + '--' * 20 + '\n')
             f.write(str(all_device_id_list)+'\n')
+            f.write('--' * 20 + 'â†“â†“â†“å„è®¾å¤‡æŒ‚æµ‹æ—¶é—´å¦‚ä¸‹â†“â†“â†“' + '--' * 20 + '\n')
+            json.dump(time_merge_dict, f, indent=True)
+            f.write('\n')
+            f.write('\n')
+            f.write('--' * 20 + 'â†“â†“â†“ä»»åŠ¡ç»“æœå¦‚ä¸‹â†“â†“â†“' + '--' * 20 + '\n')
 
             json.dump(merge_dict, f, indent=True)
             f.write('\n')
-            f.write('--' * 20 + '¡ı¡ı¡ıbugËùÔÚµÄcase·Ö²¼ÈçÏÂ¡ı¡ı¡ı' + '--' * 20)
+            f.write('--' * 20 + 'â†“â†“â†“bugæ‰€åœ¨çš„caseåˆ†å¸ƒå¦‚ä¸‹â†“â†“â†“' + '--' * 20)
             f.write('\n')
             json.dump(case_merge_dict, f, indent=True)
 
 
-        # with open(f'{new_task_id[0]}_download_merge.txt', 'a+') as f:
-        #     # f.write(str(merge_dict))
-        #
-        #     json.dump(download_merge_dict, f, indent=True)
+
 
 
     else:
@@ -292,6 +324,11 @@ if __name__ == '__main__':
             task = TaskResult(task_id)
             task.get_tams_result()
             download_log(task_id)
+            for device_id in time_merge_dict.keys():
+                time_merge_dict[device_id] = f'{time_merge_dict[device_id] / 3600}h'
+            with open(os.path.join(now_path, 'result_path', '{}_result.txt'.format(task_id)), 'a+') as f:
+                f.write('--' * 20 + 'â†“â†“â†“å„è®¾å¤‡æŒ‚æµ‹æ—¶é—´å¦‚ä¸‹â†“â†“â†“' + '--' * 20 + '\n')
+                json.dump(time_merge_dict, f, indent=True)
 
 
 

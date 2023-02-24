@@ -27,7 +27,7 @@ except ModuleNotFoundError as err_msg:
 import urllib.request
 
 
-max_download_num = 1#输入下载logcat文件的最大个数
+max_download_num = 10#输入下载logcat文件的最大个数
 now_path = os.getcwd()
 task_id = input('请输入任务id：')
 host = "http://tams.thundersoft.com/"
@@ -277,6 +277,50 @@ def download_log(task_id):
                 urllib.request.urlretrieve(download_host + download_path, os.path.join(download_local_path, file_name))
                 count_num += 1
 
+def download_type_log(task_id):
+    print(f'开始下载任务{task_id}的文件')
+    for key in download_merge_dict.keys():
+        device_id = key.split('_')[0]
+        package_name = key.split('_')[1].strip()
+        type = key.split('_')[-1]
+        count_num = 0
+        if type == 'CRASH':
+            type = 'APP_CRASH'
+
+
+            for key2 in download_merge_dict[key].keys():
+                if count_num >= max_download_num:
+                    break
+                else:
+                    file_name = key2
+                    download_local_path = os.path.join(now_path, 'log_path', f'{task_id}_type', package_name,device_id.replace(":",""), type, package_name)
+                    if not os.path.exists(download_local_path):
+                        os.makedirs(download_local_path)
+                    download_path = download_merge_dict[key][key2]
+                    print(f'开始下载{device_id}_{package_name}_{type}')
+
+                    urllib.request.urlretrieve(download_host + download_path, os.path.join(download_local_path, file_name))
+                    count_num += 1
+        if type == 'ANR':
+
+
+
+            for key2 in download_merge_dict[key].keys():
+                if count_num >= max_download_num:
+                    break
+                else:
+                    file_name = key2
+                    download_local_path = os.path.join(now_path, 'log_path', f'{task_id}_type', f'{package_name}_ANR',
+                                                       device_id.replace(":", ""), type, package_name)
+                    if not os.path.exists(download_local_path):
+                        os.makedirs(download_local_path)
+                    download_path = download_merge_dict[key][key2]
+                    print(f'开始下载{device_id}_{package_name}_{type}')
+
+                    urllib.request.urlretrieve(download_host + download_path,
+                                               os.path.join(download_local_path, file_name))
+                    count_num += 1
+
 
 
 
@@ -304,7 +348,10 @@ if __name__ == '__main__':
                 os.remove(os.path.join(now_path,'result_path','{}_result.txt'.format(id)))
             else:
                 pass
-        download_log(f'{new_task_id[0]}_merge')
+        #常规下载：
+        # download_log(f'{new_task_id[0]}_merge')
+        #格式化下载:
+        # download_type_log(f'{new_task_id[0]}_merge')
         print('任务结果合并完毕!')
         for device_id in time_merge_dict.keys():
             time_merge_dict[device_id] = f'{time_merge_dict[device_id] / 3600}h'
@@ -332,7 +379,10 @@ if __name__ == '__main__':
 
             task = TaskResult(task_id)
             task.get_tams_result()
-            download_log(task_id)
+            #常规下载：
+            # download_log(task_id)
+            #格式化下载：
+            # download_type_log(task_id)
             for device_id in time_merge_dict.keys():
                 time_merge_dict[device_id] = f'{time_merge_dict[device_id] / 3600}h'
             with open(os.path.join(now_path, 'result_path', '{}_result.txt'.format(task_id)), 'a+') as f:
